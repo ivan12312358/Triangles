@@ -19,7 +19,7 @@ int main()
 											{ {  4,   4,   0}, { 10,   0,  10}, { 0, 10,  10} },
 										  };
 
-	std::cout << "triangle answers:" << std::endl;
+	std::cout << "programme answers:" << std::endl;
 
 	for (int i = 0;	i < size; i++)
 	for (int j = 0; j < size; j++)
@@ -33,7 +33,6 @@ int main()
 
 	std::cout << "true answers:" << std::endl;
 	std::cout << "0\n1\n2\n3\n4\n5\n8\n9" << std::endl;
-
 
 	return 0;
 }
