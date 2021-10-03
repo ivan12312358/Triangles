@@ -24,7 +24,7 @@ int main()
 	for (int i = 0;	i < size; i++)
 	for (int j = 0; j < size; j++)
 	{
-		if (i != j && v_triangle[i].triangles_intersection(v_triangle[j]))
+		if (i != j && v_triangle[i].intersect(v_triangle[j]))
 		{
 			std::cout << i << std::endl;
 			break;
