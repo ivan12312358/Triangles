@@ -351,13 +351,13 @@ public:
 	{
 		int area_index = triang.belong_child(prism);
 
-		if (area_index == -1)
+		if (area_index == -1 || (leaf.empty() && triang.is_point()))
 		{
 			v_triangle.push_back(triang);
 			return;
 		}
 
-		if (leaf.empty() && !triang.is_point())
+		if (leaf.empty())
 		{
 			leaf.resize(l_size);
 			for (int i = 0; i < l_size; i++)
