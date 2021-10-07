@@ -19,14 +19,15 @@ int main()
 		{
 			std::cin >> point[j].x >> point[j].y >> point[j].z;
 
-			main_area(prism.min, point[j], 0);
-			main_area(prism.max, point[j], 1);
+			prism.main_area(point[j]);
 		}
 
 		v_triangle[i] = { point[0],
 						  point[1],
 						  point[2], i};
 	}
+
+	prism.min = prism.min - geometry::vector{0.1, 0.1, 0.1};
 
 	geometry::node tree{prism};
 
@@ -36,22 +37,4 @@ int main()
 	tree.solution();
 
 	return 0;
-}
-
-void main_area(geometry::vector& vertex, const geometry::vector& point, int mode)
-{
-	if (!vertex.is_valid())
-		vertex = point;
-	else if (mode == 0)
-	{
-		vertex.x = vertex.x < point.x ? vertex.x : point.x;
-		vertex.y = vertex.y < point.y ? vertex.y : point.y;
-		vertex.z = vertex.z < point.z ? vertex.z : point.z;
-	}
-	else if (mode == 1)
-	{
-		vertex.x = vertex.x > point.x ? vertex.x : point.x;
-		vertex.y = vertex.y > point.y ? vertex.y : point.y;
-		vertex.z = vertex.z > point.z ? vertex.z : point.z;
-	}
 }

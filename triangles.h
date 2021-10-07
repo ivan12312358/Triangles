@@ -1,4 +1,6 @@
 #include <iostream>
+#include <unordered_set>
+#include <set>
 #include <cmath>
 
 #ifndef H_TRIANGLES
@@ -6,15 +8,14 @@
 
 namespace geometry
 {
-const double epsilon = 0.0001;
+const double epsilon = 0.000001;
 
 bool is_equal(double a, double b) { return fabs(a - b) <= epsilon; }
 
 //-----------------------------------------------------------------------------------------------------------------
 
-class vector
+struct vector
 {
-public:
 	double x, y, z;
 
 	vector(): x{NAN}, y{NAN}, z{NAN} {}
@@ -31,22 +32,31 @@ public:
 		return *this;
 	}
 
-	vector operator&  (const vector& other) const { return vector (x * other.x,  y * other.y,  z * other.z); }
-	vector operator+  (const vector& other) const { return vector (x + other.x,  y + other.y,  z + other.z); }
-	vector operator-  (const vector& other) const { return vector (x - other.x,  y - other.y,  z - other.z); }
-	vector operator*  (double alpha) 	    const { return vector (x * alpha,    y * alpha,    z * alpha);   }	
+	vector operator*  (double alpha) 	    const { return vector {x * alpha,    y * alpha,    z * alpha};   }	
+	vector operator&  (const vector& other) const { return vector {x * other.x,  y * other.y,  z * other.z}; }
+	vector operator+  (const vector& other) const { return vector {x + other.x,  y + other.y,  z + other.z}; }
+	vector operator-  (const vector& other) const { return vector {x - other.x,  y - other.y,  z - other.z}; }
+	vector operator^  (const vector& other)	const { return vector {{y * other.z - z * other.y},
+																   {z * other.x - x * other.z},
+																   {x * other.y - y * other.x}}; }
+
 	double operator*  (const vector& other) const { return 	       x * other.x + y * other.y + z * other.z;  }
 	double operator() () 					const { return 		   std::sqrt(x * x + y * y + z * z); }
 	bool   operator<  (const vector& other) const { return x <  other.x && y <  other.y && z <  other.z; }
 	bool   operator<= (const vector& other) const { return x <= other.x && y <= other.y && z <= other.z; }
-	bool is_valid() 						const { return std::isfinite(x) && std::isfinite(y) && std::isfinite(z); }
-	void print() const 
+	bool   operator== (const vector& other) const { return is_equal(x, other.x) && is_equal(y, other.y) && is_equal(z, other.z);}
+	bool   operator!= (const vector& other) const { return !(*this == other); }
+	bool   is_valid() 						const { return std::isfinite(x) && std::isfinite(y) && std::isfinite(z); }
+	operator bool () const { return *this != vector{0, 0, 0}; }
+
+	bool belong_vector(const vector& min, const vector& max) const
 	{
-		std::cout << "Vector:" << std::endl;
-		std::cout << x << " " << y << " " << z << std::endl; 
+		vector r1{*this - min}, r2{max - min}, r3{*this - max};
+
+		return is_equal(r1() + r3(), r2());
 	}
 
-    ~vector() {x = NAN, y = NAN, z = NAN;}
+    ~vector() {}
 };
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -83,9 +93,8 @@ bool belong_triangle(const vector& p, const vector& a, const vector& b, const ve
 
 //-----------------------------------------------------------------------------------------------------------------
 
-class plane
+struct plane
 {
-public:
 	double A, B, C, D;
 	vector n;
 
@@ -106,19 +115,12 @@ public:
 	};
 
     ~plane() { A = NAN, B = NAN, C = NAN, D = NAN; }
-
-	void print() const
-	{
-		std::cout << "Plane:" << std::endl;
-		std::cout << A << " " << B << " " << C << " " << D << std::endl;
-	}
 };
 
 //-----------------------------------------------------------------------------------------------------------------
 
-class edge
+struct edge
 {
-public:
 	vector a, b, p;
 
 	edge(): a{}, b{}, p{} {};
@@ -155,9 +157,8 @@ public:
 
 //-----------------------------------------------------------------------------------------------------------------
 
-class area
+struct area
 {
-public:
 	vector min;
 	vector max;
 
@@ -179,10 +180,19 @@ public:
 		max = 0.5 * (prism.max + prism.min + ((prism.max - prism.min) & id_bits));
 	}
 
-	void print() const
+	void main_area(const vector& point)
 	{
-		std::cout << "Area:" << std::endl;
-		min.print(); max.print();
+		if (!min.is_valid() || !max.is_valid())
+			min = max = point;
+		else
+		{
+			min.x = min.x < point.x ? min.x : point.x;
+			min.y = min.y < point.y ? min.y : point.y;
+			min.z = min.z < point.z ? min.z : point.z;
+			max.x = max.x > point.x ? max.x : point.x;
+			max.y = max.y > point.y ? max.y : point.y;
+			max.z = max.z > point.z ? max.z : point.z;
+		}
 	}
 
 	~area() {};
@@ -196,39 +206,54 @@ class triangle
 	plane  surface;
 
 public:
-    triangle(): a{}, b{}, c{}, surface{} {};
+	int index;
 
-	triangle(const vector& a, const vector& b, const vector& c): 
-			a{a}, b{b}, c{c}, surface{a, b, c} {};
+    triangle(): a{}, b{}, c{}, surface{}, index{} {};
+
+	triangle(const vector& a, const vector& b, const vector& c, int index = 0): 
+			a{a}, b{b}, c{c}, surface{a, b, c}, index{index} {};
 
 	triangle(const triangle& other):
-			a{other.a}, b{other.b}, c{other.c}, surface{other.surface} {};
+			a{other.a}, b{other.b}, c{other.c}, surface{other.surface}, index{other.index} {};
 
-	bool triangles_intersection(const triangle& other) const
+	bool is_point () const { return a == b && a == c; }
+	bool is_vector() const { return ((a - b) ^ (a - c)) == 0; }
+
+	bool intersect(const triangle& other) const
 	{
-		if (intersection_point(other)) 		 return 1;
-		if (other.intersection_point(*this)) return 1;
+		if(surface.n == 0 && other.surface.n == 0)
+			return degenerate_case(other);
+
+		if (triangle_intersect(other)) 		 return 1;
+		if (other.triangle_intersect(*this)) return 1;
 		return 0;
 	}
 
 	bool belong_area(const area& prism) const
 	{
-		return 	prism.min <= a && a < prism.max &&
-				prism.min <= b && b < prism.max &&
-				prism.min <= c && c < prism.max;
+		return 	prism.min < a && a <= prism.max &&
+				prism.min < b && b <= prism.max &&
+				prism.min < c && c <= prism.max;
 	}
 
-	void print() const
+	int belong_child(const area& prism) const
 	{
-		std::cout << "Triangle:" << std::endl;
-		a.print(); b.print(); c.print(); surface.print();
+		area child_prism[8];
+
+		for (int i = 0; i < 8; i++)
+		{
+			child_prism[i].new_area(prism, i);
+			if (belong_area(child_prism[i]))
+				return i;
+		}
+
+		return -1;
 	}
 
     ~triangle() {};
 
-
 private:
-	bool intersection_point(const triangle& other) const
+	bool triangle_intersect(const triangle& other) const
 	{
 		edge AB {other.a, other.b};
 		if (AB.intersect_plane(surface))
@@ -246,6 +271,61 @@ private:
 				return 1;
 
 		return 0;
+	}
+
+	bool degenerate_case(const triangle& tr) const
+	{
+		bool p1 = 	 is_point(),
+			 p2 = tr.is_point();
+
+		if (p1 && p2) 
+			return a == tr.a;
+
+		bool v1 = 	 is_vector(),
+			 v2 = tr.is_vector();
+
+		vector v_r1[2], v_r2[2];
+
+		   direct_vector(v_r1);
+		tr.direct_vector(v_r2);
+
+		if (p1 && v2)
+			return a.belong_vector(v_r2[0], v_r2[1]);
+
+		if (p2 && v1)
+			return tr.a.belong_vector(v_r1[0], v_r1[1]);
+
+		vector r1 =  v_r1[1] - v_r1[0],
+			   r2 =  v_r2[1] - v_r2[0];
+
+		if (!is_equal(determinant(r1, r2, a - tr.a), 0))
+			return 0;
+
+		if ((r1 ^ r2) == 0)
+		{
+			return  v_r1[0].belong_vector(v_r2[0], v_r2[1]) ||
+					v_r1[1].belong_vector(v_r2[0], v_r2[1]);
+		}
+
+		double alpha = ((tr.a.x - a.x) * r1.y - (tr.a.y - a.y) * r1.x) / 
+						(r1.x * r2.y - r2.x * r1.y);
+
+		vector r = tr.a + alpha * r2;
+	
+		return r.belong_vector(v_r1[0], v_r1[1]) && r.belong_vector(v_r2[0], v_r2[1]);
+	}
+
+	void direct_vector(vector* v_r) const
+	{
+		if(v_r == nullptr)
+			return;
+
+		if(a.belong_vector(b, c))
+			v_r[0] = b, v_r[1] = c;
+		else if(b.belong_vector(a, c))
+			v_r[0] = a, v_r[1] = c;
+		else
+			v_r[0] = a, v_r[1] = b;
 	}
 };
 
@@ -269,49 +349,68 @@ public:
 
 	void insert(const triangle& triang)
 	{
-		if (!insert_in_node(triang))
+		int area_index = triang.belong_child(prism);
+
+		if (area_index == -1)
+		{
 			v_triangle.push_back(triang);
+			return;
+		}
+
+		if (leaf.empty() && !triang.is_point())
+		{
+			leaf.resize(l_size);
+			for (int i = 0; i < l_size; i++)
+				leaf[i].prism.new_area(prism, i);
+		}
+
+		leaf[area_index].insert(triang);
 	}
 
-	void print() const
+	void intersect(std::unordered_set<int>& intersecting_triangles) const
 	{
-		std::cout << "Node:" << std::endl;
-		prism.print();
+		for (int i = 0; 	i < v_triangle.size(); i++)
+		for (int j = i + 1; j < v_triangle.size(); j++)
+			if (v_triangle[i].intersect(v_triangle[j]))
+			{
+				intersecting_triangles.insert(v_triangle[i].index);
+				intersecting_triangles.insert(v_triangle[j].index);
+			}
 
-		for(auto it: v_triangle)
-			it.print();
+		for (int k = 0; k < leaf.size(); k++)
+		for (int i = 0; i < v_triangle.size(); i++)
+			leaf[k].node_intersect(v_triangle[i], intersecting_triangles);
 
-		if (leaf.size() == l_size)
-		{
-			for (auto it: leaf)
-				it.print();
-		}
+		for (int j = 0; j < leaf.size(); j++)
+			leaf[j].intersect(intersecting_triangles);
+	}
+
+	void solution() const
+	{
+		std::unordered_set<int> res;
+
+		intersect(res);
+
+		std::set<int> sorted_res(res.begin(), res.end());
+
+		for (auto it: sorted_res)
+			std::cout << it << std::endl;
 	}
 
 	~node() {};
 
 private:
-	bool insert_in_node(const triangle& triang)
+	void node_intersect(const triangle& tr, std::unordered_set<int>& intersecting_triangles) const
 	{
-		if (leaf.size() != l_size)
-		{
-			leaf.resize(l_size);
-
-			for (int i = 0; i < l_size; ++i)
-				leaf[i].prism.new_area(prism, i);
-		}
-
-		for (int i = 0; i < l_size; ++i)
-		{
-			if (triang.belong_area(leaf[i].prism))
-			{	
-				if (!leaf[i].insert_in_node(triang))
-					 v_triangle.push_back(triang);
-
-				return 1;
+		for (int j = 0; j < v_triangle.size(); j++)
+			if (tr.intersect(v_triangle[j]))
+			{
+				intersecting_triangles.insert(tr.index);
+				intersecting_triangles.insert(v_triangle[j].index);
 			}
-		}
-		return 0;
+
+		for(int k = 0; k < leaf.size(); k++)
+			leaf[k].node_intersect(tr, intersecting_triangles);
 	}
 };
 };
