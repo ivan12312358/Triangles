@@ -9,8 +9,8 @@ int main()
 	size_t size{};
 	std::cin >> size;
 
-	std::vector<geometry::vector> 	point{3};
-	std::vector<geometry::triangle> v_triangle{size};
+	std::vector<geometry::vector> 	point(3);
+	std::vector<geometry::triangle> v_triangle(size);
 	geometry::area prism;
 
 	for (int i = 0; i < size; i++)

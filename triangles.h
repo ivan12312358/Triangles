@@ -18,19 +18,8 @@ struct vector
 {
 	double x, y, z;
 
-	vector(): x{NAN}, y{NAN}, z{NAN} {}
-
-	vector(double x, double y, double z):
+	vector(double x = NAN, double y = NAN, double z = NAN):
 		   x{x}, y{y}, z{z} {}
-
-	vector(const vector& other):
-		   x{other.x}, y{other.y}, z{other.z} {}
-
-	const vector& operator= (const vector& other)
-	{
-		x = other.x, y = other.y, z = other.z;
-		return *this;
-	}
 
 	vector operator*  (double alpha) 	    const { return vector {x * alpha,    y * alpha,    z * alpha};   }	
 	vector operator&  (const vector& other) const { return vector {x * other.x,  y * other.y,  z * other.z}; }
@@ -55,8 +44,6 @@ struct vector
 
 		return is_equal(r1() + r3(), r2());
 	}
-
-    ~vector() {}
 };
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -113,8 +100,6 @@ struct plane
 		D = -determinant(a, r1, r2);
 		n = {A, B, C};
 	};
-
-    ~plane() { A = NAN, B = NAN, C = NAN, D = NAN; }
 };
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -213,15 +198,12 @@ public:
 	triangle(const vector& a, const vector& b, const vector& c, int index = 0): 
 			a{a}, b{b}, c{c}, surface{a, b, c}, index{index} {};
 
-	triangle(const triangle& other):
-			a{other.a}, b{other.b}, c{other.c}, surface{other.surface}, index{other.index} {};
-
 	bool is_point () const { return a == b && a == c; }
-	bool is_vector() const { return ((a - b) ^ (a - c)) == 0; }
+	bool is_vector() const { return !((a - b) ^ (a - c)); }
 
 	bool intersect(const triangle& other) const
 	{
-		if(surface.n == 0 && other.surface.n == 0)
+		if(!surface.n && !other.surface.n)
 			return degenerate_case(other);
 
 		if (triangle_intersect(other)) 		 return 1;
@@ -249,8 +231,6 @@ public:
 
 		return -1;
 	}
-
-    ~triangle() {};
 
 private:
 	bool triangle_intersect(const triangle& other) const
@@ -301,7 +281,7 @@ private:
 		if (!is_equal(determinant(r1, r2, a - tr.a), 0))
 			return 0;
 
-		if ((r1 ^ r2) == 0)
+		if (!(r1 ^ r2))
 		{
 			return  v_r1[0].belong_vector(v_r2[0], v_r2[1]) ||
 					v_r1[1].belong_vector(v_r2[0], v_r2[1]);
@@ -343,9 +323,6 @@ public:
 
 	node(const area& prism):
 		prism{prism}, v_triangle{}, leaf{} {}
-
-	node(const node& other):
-		prism{other.prism}, v_triangle{other.v_triangle}, leaf{other.leaf} {}
 
 	void insert(const triangle& triang)
 	{
@@ -396,8 +373,6 @@ public:
 		for (auto it: sorted_res)
 			std::cout << it << std::endl;
 	}
-
-	~node() {};
 
 private:
 	void node_intersect(const triangle& tr, std::unordered_set<int>& intersecting_triangles) const
