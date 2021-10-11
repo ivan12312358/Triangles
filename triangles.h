@@ -112,8 +112,6 @@ struct edge
 
 	edge(const vector& a, const vector& b): a{a}, b{b}, p{} {};
 
-	edge(const edge& other): a{other.a}, b{other.b}, p{other.p} {};
-
 	bool intersect_plane(const plane& plane)
 	{
 		double a_halfplane = plane.n * a + plane.D,
@@ -136,8 +134,6 @@ struct edge
 
 		return 1;
 	}
-
-    ~edge() {};
 };
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -151,9 +147,6 @@ struct area
 	
 	area(const vector& min, const vector& max): 
 		min{min}, max{max} {}
-
-	area(const area& other): 
-		min{other.min}, max{other.max} {}
 
 	void new_area(const area& prism, int l_id)
 	{
@@ -179,8 +172,6 @@ struct area
 			max.z = max.z > point.z ? max.z : point.z;
 		}
 	}
-
-	~area() {};
 };
 
 //-----------------------------------------------------------------------------------------------------------------
