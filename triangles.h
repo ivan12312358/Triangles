@@ -108,7 +108,7 @@ struct edge
 {
 	vector a, b, p;
 
-	edge(): a{}, b{}, p{} {};
+	edge() = default;
 
 	edge(const vector& a, const vector& b): a{a}, b{b}, p{} {};
 
@@ -143,7 +143,7 @@ struct area
 	vector min;
 	vector max;
 
-	area(): min{}, max{} {}
+	area() = default;
 	
 	area(const vector& min, const vector& max): 
 		min{min}, max{max} {}
@@ -184,7 +184,7 @@ class triangle
 public:
 	int index;
 
-    triangle(): a{}, b{}, c{}, surface{}, index{} {};
+    triangle() = default;
 
 	triangle(const vector& a, const vector& b, const vector& c, int index = 0): 
 			a{a}, b{b}, c{c}, surface{a, b, c}, index{index} {};
@@ -310,7 +310,7 @@ class node
 	static const size_t   l_size {8};
 
 public:
-	node(): prism{}, v_triangle{}, leaf{} {}
+	node() = default;
 
 	node(const area& prism):
 		prism{prism}, v_triangle{}, leaf{} {}
@@ -335,14 +335,14 @@ public:
 		leaf[area_index].insert(triang);
 	}
 
-	void intersect(std::unordered_set<int>& intersecting_triangles) const
+	void intersect(std::vector<int>& intersecting_triangles) const
 	{
 		for (int i = 0; 	i < v_triangle.size(); i++)
 		for (int j = i + 1; j < v_triangle.size(); j++)
 			if (v_triangle[i].intersect(v_triangle[j]))
 			{
-				intersecting_triangles.insert(v_triangle[i].index);
-				intersecting_triangles.insert(v_triangle[j].index);
+				intersecting_triangles.push_back(v_triangle[i].index);
+				intersecting_triangles.push_back(v_triangle[j].index);
 			}
 
 		for (int k = 0; k < leaf.size(); k++)
@@ -355,7 +355,7 @@ public:
 
 	void solution() const
 	{
-		std::unordered_set<int> res;
+		std::vector<int> res;
 
 		intersect(res);
 
@@ -366,13 +366,13 @@ public:
 	}
 
 private:
-	void node_intersect(const triangle& tr, std::unordered_set<int>& intersecting_triangles) const
+	void node_intersect(const triangle& tr, std::vector<int>& intersecting_triangles) const
 	{
 		for (int j = 0; j < v_triangle.size(); j++)
 			if (tr.intersect(v_triangle[j]))
 			{
-				intersecting_triangles.insert(tr.index);
-				intersecting_triangles.insert(v_triangle[j].index);
+				intersecting_triangles.push_back(tr.index);
+				intersecting_triangles.push_back(v_triangle[j].index);
 			}
 
 		for(int k = 0; k < leaf.size(); k++)
