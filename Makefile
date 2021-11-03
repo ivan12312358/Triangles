@@ -1,5 +1,8 @@
-all: main.cpp triangles.h
-	g++ -O2 main.cpp -o main
+CXX = g++
+CXXFLAGS = -O2 -o $@
 
-check: tests.cpp triangles.h
-	g++ -O2 tests.cpp -o tests
+triangles: main.cpp triangles.hpp
+	$(CXX) $(CXXFLAGS) $<
+
+gentest: ./Tests/gentest.cpp triangles.hpp
+	$(CXX) $(CXXFLAGS) $<

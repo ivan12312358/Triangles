@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <set>
 #include <cmath>
+#include <vector>
 
 #ifndef H_TRIANGLES
 #define H_TRIANGLES
@@ -97,8 +98,8 @@ struct plane
 		A = r1.y * r2.z - r2.y * r1.z;
 		B = r2.x * r1.z - r1.x * r2.z;
 		C = r1.x * r2.y - r2.x * r1.y;
-		D = -determinant(a, r1, r2);
 		n = {A, B, C};
+		D = -(a * n);
 	};
 };
 
@@ -132,7 +133,40 @@ struct edge
 		}
 		else return 0;
 
+		if (is_equal(a_halfplane, 0) && is_equal(b_halfplane, 0))
+			return -1;
+
 		return 1;
+	}
+
+	bool edge_intersect(const edge& edge) const
+	{
+		vector dir1 =  a - b,
+			   dir2 =  edge.a - edge.b;
+
+		if (!is_equal(determinant(dir1, dir2, a - edge.a), 0))
+			return 0;
+
+		vector inter_point = dir1 ^ dir2;
+
+		double alpha{};
+
+		if (inter_point.x != 0)
+			alpha = (dir1.z * (edge.a.y - a.y) - dir1.y * (edge.a.z - a.z)) / inter_point.x;
+		else if (inter_point.y != 0)
+			alpha = (dir1.x * (edge.a.z - a.z) - dir1.z * (edge.a.x - a.x)) / inter_point.y;
+		else if (inter_point.z != 0)
+			alpha = (dir1.y * (edge.a.x - a.x) - dir1.x * (edge.a.y - a.y)) / inter_point.z;
+		if(!inter_point)
+		{
+			return  a.belong_vector(edge.a, edge.b) ||
+					b.belong_vector(edge.a, edge.b);
+		}
+
+		vector r = edge.a + alpha * dir2;
+	
+		return r.belong_vector(a, b) && 
+			   r.belong_vector(edge.a, edge.b);
 	}
 };
 
@@ -199,6 +233,7 @@ public:
 
 		if (triangle_intersect(other)) 		 return 1;
 		if (other.triangle_intersect(*this)) return 1;
+
 		return 0;
 	}
 
@@ -227,19 +262,46 @@ private:
 	bool triangle_intersect(const triangle& other) const
 	{
 		edge AB {other.a, other.b};
-		if (AB.intersect_plane(surface))
-			if (belong_triangle(AB.p, a, b, c)) 
-				return 1;
+		if (intersect(AB))
+			return 1;
 
 		edge BC {other.b, other.c};
-		if (BC.intersect_plane(surface))
-			if (belong_triangle(BC.p, a, b, c)) 
-				return 1;
+		if (intersect(BC))
+			return 1;
 
 		edge CA {other.c, other.a};
-		if (CA.intersect_plane(surface))
-			if (belong_triangle(CA.p, a, b, c)) 
+		if (intersect(BC))
+			return 1;
+
+		return 0;
+	}
+
+	bool intersect(edge& tr_edge) const
+	{
+		int is_intersect = tr_edge.intersect_plane(surface);
+
+		if (is_intersect)
+		{
+			if (is_intersect == -1 && edge_intersect(tr_edge))
 				return 1;
+
+			if (belong_triangle(tr_edge.p, a, b, c))
+				return 1;
+		}
+
+		return 0;
+	}
+
+	bool edge_intersect(const edge& tr_edge) const
+	{
+		if (tr_edge.edge_intersect(edge{a, b}))
+			return 1;
+
+		if (tr_edge.edge_intersect(edge{b, c}))
+			return 1;
+
+		if (tr_edge.edge_intersect(edge{c, a}))
+			return 1;
 
 		return 0;
 	}
@@ -255,48 +317,31 @@ private:
 		bool v1 = 	 is_vector(),
 			 v2 = tr.is_vector();
 
-		vector v_r1[2], v_r2[2];
+		std::pair<vector, vector> max1, max2;
 
-		   direct_vector(v_r1);
-		tr.direct_vector(v_r2);
+		   max_vector(max1);
+		tr.max_vector(max2);
 
 		if (p1 && v2)
-			return a.belong_vector(v_r2[0], v_r2[1]);
+			return a.belong_vector(max2.first, max2.second);
 
 		if (p2 && v1)
-			return tr.a.belong_vector(v_r1[0], v_r1[1]);
+			return tr.a.belong_vector(max1.first, max1.second);
 
-		vector r1 =  v_r1[1] - v_r1[0],
-			   r2 =  v_r2[1] - v_r2[0];
-
-		if (!is_equal(determinant(r1, r2, a - tr.a), 0))
-			return 0;
-
-		if (!(r1 ^ r2))
-		{
-			return  v_r1[0].belong_vector(v_r2[0], v_r2[1]) ||
-					v_r1[1].belong_vector(v_r2[0], v_r2[1]);
-		}
-
-		double alpha = ((tr.a.x - a.x) * r1.y - (tr.a.y - a.y) * r1.x) / 
-						(r1.x * r2.y - r2.x * r1.y);
-
-		vector r = tr.a + alpha * r2;
-	
-		return r.belong_vector(v_r1[0], v_r1[1]) && r.belong_vector(v_r2[0], v_r2[1]);
+		edge ab    {max1.first, max1.second},
+			 tr_ab {max2.first, max2.second};
+		
+		return ab.edge_intersect(tr_ab);
 	}
 
-	void direct_vector(vector* v_r) const
+	void max_vector(std::pair<vector, vector>& max) const
 	{
-		if(v_r == nullptr)
-			return;
-
 		if(a.belong_vector(b, c))
-			v_r[0] = b, v_r[1] = c;
+			max.first = b, max.second = c;
 		else if(b.belong_vector(a, c))
-			v_r[0] = a, v_r[1] = c;
+			max.first = a, max.second = c;
 		else
-			v_r[0] = a, v_r[1] = b;
+			max.first = a, max.second = b;
 	}
 };
 

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "triangles.h"
+#include "triangles.hpp"
 
 void main_area(geometry::vector& vertex, const geometry::vector& point, int mode);
 
