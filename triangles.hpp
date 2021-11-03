@@ -113,7 +113,7 @@ struct edge
 
 	edge(const vector& a, const vector& b): a{a}, b{b}, p{} {};
 
-	bool intersect_plane(const plane& plane)
+	int intersect_plane(const plane& plane)
 	{
 		double a_halfplane = plane.n * a + plane.D,
 			   b_halfplane = plane.n * b + plane.D;
@@ -139,12 +139,12 @@ struct edge
 		return 1;
 	}
 
-	bool edge_intersect(const edge& edge) const
+	bool edge_intersect(const edge& tr_edge) const
 	{
 		vector dir1 =  a - b,
-			   dir2 =  edge.a - edge.b;
+			   dir2 =  tr_edge.a - tr_edge.b;
 
-		if (!is_equal(determinant(dir1, dir2, a - edge.a), 0))
+		if (!is_equal(determinant(dir1, dir2, a - tr_edge.a), 0))
 			return 0;
 
 		vector inter_point = dir1 ^ dir2;
@@ -152,21 +152,21 @@ struct edge
 		double alpha{};
 
 		if (inter_point.x != 0)
-			alpha = (dir1.z * (edge.a.y - a.y) - dir1.y * (edge.a.z - a.z)) / inter_point.x;
+			alpha = (dir1.z * (tr_edge.a.y - a.y) - dir1.y * (tr_edge.a.z - a.z)) / inter_point.x;
 		else if (inter_point.y != 0)
-			alpha = (dir1.x * (edge.a.z - a.z) - dir1.z * (edge.a.x - a.x)) / inter_point.y;
+			alpha = (dir1.x * (tr_edge.a.z - a.z) - dir1.z * (tr_edge.a.x - a.x)) / inter_point.y;
 		else if (inter_point.z != 0)
-			alpha = (dir1.y * (edge.a.x - a.x) - dir1.x * (edge.a.y - a.y)) / inter_point.z;
-		if(!inter_point)
+			alpha = (dir1.y * (tr_edge.a.x - a.x) - dir1.x * (tr_edge.a.y - a.y)) / inter_point.z;
+		else
 		{
-			return  a.belong_vector(edge.a, edge.b) ||
-					b.belong_vector(edge.a, edge.b);
+			return  a.belong_vector(tr_edge.a, tr_edge.b) ||
+					b.belong_vector(tr_edge.a, tr_edge.b);
 		}
 
-		vector r = edge.a + alpha * dir2;
+		vector r = tr_edge.a + alpha * dir2;
 	
 		return r.belong_vector(a, b) && 
-			   r.belong_vector(edge.a, edge.b);
+			   r.belong_vector(tr_edge.a, tr_edge.b);
 	}
 };
 
