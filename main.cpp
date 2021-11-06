@@ -2,8 +2,6 @@
 #include <vector>
 #include "triangles.hpp"
 
-void main_area(geometry::vector& vertex, const geometry::vector& point, int mode);
-
 int main()
 {
 	size_t size{};

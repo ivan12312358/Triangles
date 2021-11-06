@@ -22,7 +22,6 @@ struct vector
 	vector(double x = NAN, double y = NAN, double z = NAN):
 		   x{x}, y{y}, z{z} {}
 
-	vector operator*  (double alpha) 	    const { return vector {x * alpha,    y * alpha,    z * alpha};   }	
 	vector operator&  (const vector& other) const { return vector {x * other.x,  y * other.y,  z * other.z}; }
 	vector operator+  (const vector& other) const { return vector {x + other.x,  y + other.y,  z + other.z}; }
 	vector operator-  (const vector& other) const { return vector {x - other.x,  y - other.y,  z - other.z}; }
@@ -49,7 +48,7 @@ struct vector
 
 //-----------------------------------------------------------------------------------------------------------------
 
-vector operator* (double alpha, const vector& other) { return vector(other * alpha); }
+vector operator*  (double alpha, const vector& other) { return vector {other.x * alpha, other.y * alpha, other.z * alpha}; }
 
 //-----------------------------------------------------------------------------------------------------------------
 
@@ -67,26 +66,26 @@ bool belong_triangle(const vector& p, const vector& a, const vector& b, const ve
 	vector r1 {a - p}, r2 {b - p}, r3 {c - p};
 
 	if (is_equal(r1(), 0) || is_equal(r2(), 0) || is_equal(r3(), 0))
-		return 1;
+		return true;
 
 	double alpha = acos( (r1 * r2) / (r1() * r2()) );
 	double gamma = acos( (r2 * r3) / (r2() * r3()) );
 	double beta  = acos( (r3 * r1) / (r3() * r1()) );
 
 	if (is_equal(alpha + beta + gamma, 2 * acos(-1)))
-		return 1;
+		return true;
 
-	return 0;
+	return false;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
 
 struct plane
 {
-	double A, B, C, D;
+	double A{NAN}, B{NAN}, C{NAN}, D{NAN};
 	vector n;
 
-    plane(): A{NAN}, B{NAN}, C{NAN}, D{NAN}, n{} {};
+	plane() = default;
 
 	plane(const plane& other): 
 		A{other.A}, B{other.B}, C{other.C}, D{other.D}, n{other.n} {}
@@ -145,7 +144,7 @@ struct edge
 			   dir2 =  tr_edge.a - tr_edge.b;
 
 		if (!is_equal(determinant(dir1, dir2, a - tr_edge.a), 0))
-			return 0;
+			return false;
 
 		vector inter_point = dir1 ^ dir2;
 
@@ -231,10 +230,10 @@ public:
 		if(!surface.n && !other.surface.n)
 			return degenerate_case(other);
 
-		if (triangle_intersect(other)) 		 return 1;
-		if (other.triangle_intersect(*this)) return 1;
+		if (triangle_intersect(other)) 		 return true;
+		if (other.triangle_intersect(*this)) return true;
 
-		return 0;
+		return false;
 	}
 
 	bool belong_area(const area& prism) const
@@ -263,17 +262,17 @@ private:
 	{
 		edge AB {other.a, other.b};
 		if (intersect(AB))
-			return 1;
+			return true;
 
 		edge BC {other.b, other.c};
 		if (intersect(BC))
-			return 1;
+			return true;
 
 		edge CA {other.c, other.a};
 		if (intersect(BC))
-			return 1;
+			return true;
 
-		return 0;
+		return false;
 	}
 
 	bool intersect(edge& tr_edge) const
@@ -283,27 +282,27 @@ private:
 		if (is_intersect)
 		{
 			if (is_intersect == -1 && edge_intersect(tr_edge))
-				return 1;
+				return true;
 
 			if (belong_triangle(tr_edge.p, a, b, c))
-				return 1;
+				return true;
 		}
 
-		return 0;
+		return false;
 	}
 
 	bool edge_intersect(const edge& tr_edge) const
 	{
 		if (tr_edge.edge_intersect(edge{a, b}))
-			return 1;
+			return true;
 
 		if (tr_edge.edge_intersect(edge{b, c}))
-			return 1;
+			return true;
 
 		if (tr_edge.edge_intersect(edge{c, a}))
-			return 1;
+			return true;
 
-		return 0;
+		return false;
 	}
 
 	bool degenerate_case(const triangle& tr) const
